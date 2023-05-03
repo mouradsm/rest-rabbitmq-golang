@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/brunoOchoa.com/api-REST-FULL/domain"
 	"github.com/brunoOchoa.com/api-REST-FULL/queue"
 	"github.com/brunoOchoa.com/api-REST-FULL/requests"
 	"github.com/streadway/amqp"
@@ -12,10 +13,10 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-type Repository interface {
-	GetAllClientes() ([]requests.ClienteCreateRequest, error)
-	GetCliente(id string) (requests.ClienteCreateRequest, error)
-	CreateCliente(requests.ClienteCreateRequest) (requests.ClienteCreateRequest, error)
+type ClienteRepository interface {
+	GetAllClientes() ([]domain.Cliente, error)
+	GetCliente(id string) (domain.Cliente, error)
+	CreateCliente(requests.ClienteCreateRequest) (domain.Cliente, error)
 	UpdateCliente(string, requests.ClienteUpdateRequest) error
 	DeleteCliente(string) error
 }
@@ -34,7 +35,7 @@ const (
 )
 
 func NewMongoRepository(collection *mongo.Collection, ctx context.Context,
-	ch *amqp.Channel) Repository {
+	ch *amqp.Channel) ClienteRepository {
 
 	return &repository{
 		collection: collection,
@@ -43,7 +44,7 @@ func NewMongoRepository(collection *mongo.Collection, ctx context.Context,
 	}
 }
 
-func (r *repository) GetAllClientes() ([]requests.ClienteCreateRequest, error) {
+func (r *repository) GetAllClientes() ([]domain.Cliente, error) {
 
 	q := createQueues(GetQueue, r.ch)
 
@@ -58,19 +59,19 @@ func (r *repository) GetAllClientes() ([]requests.ClienteCreateRequest, error) {
 	defer cursor.Close(r.ctx)
 
 	if err != nil {
-		return []requests.ClienteCreateRequest{}, err
+		return []domain.Cliente{}, err
 	}
 
-	var accounts []requests.ClienteCreateRequest
+	var accounts []domain.Cliente
 
 	if cursor.All(r.ctx, &accounts); err != nil {
-		return []requests.ClienteCreateRequest{}, err
+		return []domain.Cliente{}, err
 	}
 
 	return accounts, nil
 }
 
-func (r *repository) GetCliente(id string) (requests.ClienteCreateRequest, error) {
+func (r *repository) GetCliente(id string) (domain.Cliente, error) {
 	q := createQueues(GetQueue, r.ch)
 
 	msg := amqp.Publishing{
@@ -80,7 +81,7 @@ func (r *repository) GetCliente(id string) (requests.ClienteCreateRequest, error
 
 	publishMessage(r.ch, q.Name, msg)
 
-	account := requests.ClienteCreateRequest{}
+	account := domain.Cliente{}
 	uid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return account, err
@@ -94,7 +95,7 @@ func (r *repository) GetCliente(id string) (requests.ClienteCreateRequest, error
 	return account, nil
 }
 
-func (r *repository) CreateCliente(request requests.ClienteCreateRequest) (requests.ClienteCreateRequest, error) {
+func (r *repository) CreateCliente(request requests.ClienteCreateRequest) (domain.Cliente, error) {
 
 	request.Id = primitive.NewObjectID()
 	request.Endereco.DeptId = primitive.NewObjectID()
@@ -110,10 +111,13 @@ func (r *repository) CreateCliente(request requests.ClienteCreateRequest) (reque
 	_, err = r.collection.InsertOne(r.ctx, request)
 
 	if err != nil {
-		return requests.ClienteCreateRequest{}, err
+		return domain.Cliente{}, err
 	}
-	return requests.ClienteCreateRequest{
-		Id: request.Id,
+	return domain.Cliente{
+		Id:         request.Id,
+		Name:       request.Name,
+		Nascimento: request.Nascimento,
+		CPF:        request.CPF,
 	}, nil
 }
 

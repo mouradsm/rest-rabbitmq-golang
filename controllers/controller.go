@@ -18,10 +18,10 @@ type Controller interface {
 }
 
 type controller struct {
-	service service.Service
+	service service.ClienteService
 }
 
-func NewController(service service.Service) Controller {
+func NewController(service service.ClienteService) Controller {
 	return &controller{
 		service: service,
 	}

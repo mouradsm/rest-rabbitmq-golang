@@ -24,8 +24,8 @@ const (
 
 var (
 	collection *mongo.Collection
-	repo       repository.Repository
-	serv       service.Service
+	repo       repository.ClienteRepository
+	serv       service.ClienteService
 	controller controllers.Controller
 	ctx        context.Context
 	conn       *amqp.Connection
@@ -55,7 +55,7 @@ func createServer() {
 
 func initializeLayers() {
 	repo = repository.NewMongoRepository(collection, ctx, ch)
-	serv = service.NewRepository(repo)
+	serv = service.NewClienteService(repo)
 	controller = controllers.NewController(serv)
 }
 

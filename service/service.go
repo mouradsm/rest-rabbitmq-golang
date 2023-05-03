@@ -1,30 +1,61 @@
 package service
 
 import (
-	"github.com/brunoOchoa.com/api-REST-FULL/controllers"
-	"github.com/gin-gonic/gin"
+	"sync"
+
+	"github.com/brunoOchoa.com/api-REST-FULL/domain"
+	"github.com/brunoOchoa.com/api-REST-FULL/repository"
+	"github.com/brunoOchoa.com/api-REST-FULL/requests"
 )
 
-type Route interface {
-	RegisterHandlers()
+var once sync.Once
+
+type clienteService struct {
+	clienteRepository repository.ClienteRepository
 }
 
-type route struct {
-	engine     *gin.Engine
-	controller controllers.Controller
+type ClienteService interface {
+	GetAllClientes() ([]domain.Cliente, error)
+	GetCliente(string) (domain.Cliente, error)
+	CreateCliente(requests.ClienteCreateRequest) (domain.Cliente, error)
+	UpdateCliente(string, requests.ClienteUpdateRequest) error
+	DeleteCliente(string) error
 }
 
-func RegisterHandlers(engine *gin.Engine, controller controllers.Controller) Route {
-	return &route{
-		engine:     engine,
-		controller: controller,
+var instance *clienteService
+
+func NewClienteService(r repository.ClienteRepository) ClienteService {
+	once.Do(func() {
+		instance = &clienteService{
+			clienteRepository: r,
+		}
+	})
+
+	return instance
+}
+
+func (*clienteService) GetAllClientes() ([]domain.Cliente, error) {
+	return instance.clienteRepository.GetAllClientes()
+}
+
+func (*clienteService) GetCliente(id string) (domain.Cliente, error) {
+	return instance.clienteRepository.GetCliente(id)
+}
+
+func (*clienteService) CreateCliente(request requests.ClienteCreateRequest) (domain.Cliente, error) {
+
+	return instance.clienteRepository.CreateCliente(request)
+}
+
+func (*clienteService) UpdateCliente(id string, request requests.ClienteUpdateRequest) error {
+	err := instance.clienteRepository.UpdateCliente(id, request)
+
+	if err != nil {
+		return err
 	}
-}
 
-func (r route) RegisterHandlers() {
-	r.engine.GET("/cliente", r.controller.GetAllClientes())
-	r.engine.GET("/cliente/:id", r.controller.GetCliente())
-	r.engine.POST("/cliente", r.controller.CreateCliente())
-	r.engine.PUT("/cliente/:id", r.controller.UpdateCliente())
-	r.engine.DELETE("/cliente/:id", r.controller.DeleteCliente())
+	return nil
+}
+func (*clienteService) DeleteCliente(string) error {
+	return nil
 }
