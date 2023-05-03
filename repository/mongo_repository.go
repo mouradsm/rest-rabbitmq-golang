@@ -102,23 +102,32 @@ func (r *repository) CreateCliente(request requests.ClienteCreateRequest) (domai
 
 	q := createQueues(CreateQueue, r.ch)
 	body, err := json.Marshal(request)
-	msg := amqp.Publishing{
-		ContentType: "application/json",
-		Body:        body,
-	}
-	publishMessage(r.ch, q.Name, msg)
-
-	_, err = r.collection.InsertOne(r.ctx, request)
 
 	if err != nil {
 		return domain.Cliente{}, err
 	}
-	return domain.Cliente{
-		Id:         request.Id,
-		Name:       request.Name,
-		Nascimento: request.Nascimento,
-		CPF:        request.CPF,
-	}, nil
+
+	msg := amqp.Publishing{
+		ContentType: "application/json",
+		Body:        body,
+	}
+
+	publishMessage(r.ch, q.Name, msg)
+
+	// _, err = r.collection.InsertOne(r.ctx, request)
+
+	// if err != nil {
+	// 	return domain.Cliente{}, err
+	// }
+
+	// return domain.Cliente{
+	// 	Id:         request.Id,
+	// 	Name:       request.Name,
+	// 	Nascimento: request.Nascimento,
+	// 	CPF:        request.CPF,
+	// }, nil
+
+	return domain.Cliente{}, err
 }
 
 func (r *repository) UpdateCliente(id string, request requests.ClienteUpdateRequest) error {
@@ -126,13 +135,7 @@ func (r *repository) UpdateCliente(id string, request requests.ClienteUpdateRequ
 	if err != nil {
 		return err
 	}
-	q := createQueues(UpdateQueue, r.ch)
-	body, err := json.Marshal(request)
-	msg := amqp.Publishing{
-		ContentType: "application/json",
-		Body:        body,
-	}
-	publishMessage(r.ch, q.Name, msg)
+
 	_, err = r.collection.UpdateOne(r.ctx, bson.M{
 		"_id": uid,
 	}, bson.M{
